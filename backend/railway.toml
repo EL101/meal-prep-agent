@@ -1,0 +1,11 @@
+# Railway: create two services from this directory (root = backend/).
+#   api    → uses the Dockerfile CMD below (migrates, then serves FastAPI)
+#   worker → set its start command to:  arq app.worker.settings.WorkerSettings
+# Add a Redis plugin and point DATABASE_URL at Supabase Postgres (asyncpg driver).
+[build]
+builder = "DOCKERFILE"
+dockerfilePath = "Dockerfile"
+
+[deploy]
+healthcheckPath = "/health"
+restartPolicyType = "ON_FAILURE"

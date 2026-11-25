@@ -1,0 +1,24 @@
+{
+  "name": "peanut-allergy-tight-budget",
+  "profile": {
+    "weekly_budget": 55,
+    "calorie_goal": 2000,
+    "protein_goal_g": 130,
+    "servings": 1,
+    "cook_days": [6, 2],
+    "minutes_per_session": 120,
+    "equipment": ["stovetop", "oven"],
+    "preferences": ["easy to cook"]
+  },
+  "excluded_foods": ["peanut", "shellfish"],
+  "inventory": [
+    {"name": "spinach", "quantity": 1, "unit": "each", "expires_on": "2026-12-02"},
+    {"name": "eggs", "quantity": 12, "unit": "each", "expires_on": "2026-12-10"},
+    {"name": "rice", "quantity": 2, "unit": "lb", "expires_on": null}
+  ],
+  "prices": {
+    "chicken breast": 4.5, "ground turkey": 5.0, "black beans": 1.2, "oats": 3.0,
+    "milk": 3.5, "pasta": 1.5, "broccoli": 2.0, "salmon": 9.0, "tofu": 2.5
+  },
+  "default_price": 2.5
+}

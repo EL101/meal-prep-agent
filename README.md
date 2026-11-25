@@ -39,3 +39,44 @@ How pricing is determined:
 Evals:
 - Claude only vs. +validation vs. +optimizer
 - Measure: budget violations, calorie/protein error, allergen violations, cost per day, food waste, taste ratings
+
+## Getting started
+
+Prereqs: Python 3.12+ with [uv](https://docs.astral.sh/uv/), Node 22, Docker, and the Expo Go app on your phone.
+
+```bash
+make setup                          # uv sync + npm install
+cp backend/.env.example backend/.env   # fill in ANTHROPIC_API_KEY, Supabase keys, etc.
+cp mobile/.env.example mobile/.env.local
+make services                       # Postgres + Redis in Docker
+make migrate                        # Alembic migrations
+make api                            # FastAPI on http://localhost:8000 (docs at /docs)
+make worker                         # arq worker that runs Claude jobs
+make mobile                         # Expo dev server
+```
+
+`make test` and `make lint` run what CI runs. `make evals` makes real Claude calls.
+
+## Repo layout
+
+```
+backend/
+  app/
+    api/routes/       health, profile (+ excluded foods), inventory (+ photo scan), plans, ratings
+    models/           SQLAlchemy models; migrations live in backend/alembic/
+    schemas/          api.py = HTTP models, llm.py = structured outputs Claude must fill
+    services/
+      claude.py       every Claude call (Anthropic SDK, structured outputs, refusal fallback)
+      exclusions.py   hard allergen/dislike filter, enforced in code
+      optimizer.py    OR-Tools CP-SAT: picks recipes + servings within budget and macro goals
+      pricing/        receipt → Kroger estimate → BLS estimate
+      nutrition/      USDA FoodData Central, Open Food Facts allergens
+      storage.py      Supabase Storage for photos
+    worker/           arq jobs: scan_inventory, generate_plan, weekly inventory carry-over
+  evals/              Claude only vs +validation vs +optimizer, with the README's metrics
+  tests/
+mobile/               Expo Router app: Plan, Inventory, Groceries, Profile tabs
+  lib/                API client, Supabase auth client, shared types
+```
+
+Plan generation flow: the app calls `POST /plans`, the API queues a job, and the worker asks Claude for candidate recipes, drops any that hit an excluded food, prices the missing ingredients, and lets the optimizer choose the week. `PATCH /plans/{id}` locks or swaps meals and re-solves the rest.
