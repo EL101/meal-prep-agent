@@ -11,14 +11,16 @@ import SignInScreen from './src/screens/SignInScreen';
 import { colors } from './src/theme';
 
 export default function App() {
-  const [fontsLoaded] = useFonts({
+  const [fontsLoaded, fontError] = useFonts({
     DMSans_400Regular,
     DMSans_600SemiBold,
     DMSans_700Bold,
   });
 
-  if (!fontsLoaded) {
-    // Fonts load in a few milliseconds; show the cream background until then.
+  // Fonts load in a few milliseconds; show the cream background until then.
+  // If they fail to load, render anyway so the app falls back to the system font
+  // instead of staying on a blank screen.
+  if (!fontsLoaded && !fontError) {
     return <View style={{ flex: 1, backgroundColor: colors.cream }} />;
   }
 
