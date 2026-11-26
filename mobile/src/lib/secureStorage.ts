@@ -60,11 +60,15 @@ export const secureStorage = {
   async setItem(key: string, value: string): Promise<void> {
     const previous = await chunkCount(key);
     const chunks = toChunks(value);
+    // The stored count never drops below the chunks that may exist: raise it before writing
+    // more chunks, and lower it only after stale ones are gone. An interrupted write then
+    // always leaves a count that lets removeItem find every chunk.
+    if (chunks.length > previous) {
+      await SecureStore.setItemAsync(key, String(chunks.length));
+    }
     for (let i = 0; i < chunks.length; i++) {
       await SecureStore.setItemAsync(chunkKey(key, i), chunks[i]);
     }
-    // Drop leftover chunks from a longer previous value before the count shrinks, so the old count
-    // still covers them if this is interrupted and a later removeItem can clean them up.
     await removeChunks(key, chunks.length, previous);
     await SecureStore.setItemAsync(key, String(chunks.length));
   },
