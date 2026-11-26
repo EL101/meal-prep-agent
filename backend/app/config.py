@@ -8,6 +8,14 @@ class Settings(BaseSettings):
 
     database_url: str = "postgresql+asyncpg://postgres:postgres@localhost:5432/mealprep"
 
+    # Supabase project URL, e.g. https://abcd1234.supabase.co
+    supabase_url: str = ""
+    # Supabase secret key (sb_secret_...), used to delete a user's Supabase account.
+    # Server-only: never ship it to the app.
+    supabase_secret_key: str = ""
+    # The `aud` claim Supabase puts on signed-in users' access tokens.
+    supabase_jwt_audience: str = "authenticated"
+
 
 @lru_cache
 def get_settings() -> Settings:
