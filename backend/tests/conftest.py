@@ -53,7 +53,7 @@ def make_token(
 
 @pytest.fixture
 def settings() -> Settings:
-    return Settings(supabase_url=SUPABASE_URL, supabase_service_role_key="service-key")
+    return Settings(supabase_url=SUPABASE_URL, supabase_secret_key="sb_secret_test")
 
 
 @pytest.fixture

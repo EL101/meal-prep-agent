@@ -32,11 +32,10 @@ async def delete_user(session: AsyncSession, user: User, settings: Settings) -> 
     """Delete the user's data here, then their Supabase account.
 
     Local data goes first so it can never outlive the account. If the Supabase call then
-    fails, the account still exists, so the user can sign in again and retry.
+    fails (or times out), the account may still exist; if so, the user can sign in and retry.
     """
-    if not settings.supabase_service_role_key:
-        raise RuntimeError("SUPABASE_SERVICE_ROLE_KEY is not set")
-    key = settings.supabase_service_role_key
+    if not settings.supabase_secret_key:
+        raise RuntimeError("SUPABASE_SECRET_KEY is not set")
     user_id = user.id
     await UserRepository(session).delete(user)
     await session.commit()
@@ -44,7 +43,8 @@ async def delete_user(session: AsyncSession, user: User, settings: Settings) -> 
         async with httpx.AsyncClient(timeout=10) as client:
             resp = await client.delete(
                 f"{settings.supabase_url.rstrip('/')}/auth/v1/admin/users/{user_id}",
-                headers={"apikey": key, "Authorization": f"Bearer {key}"},
+                # Secret keys aren't JWTs: Supabase wants them on `apikey` only, not as a Bearer.
+                headers={"apikey": settings.supabase_secret_key},
             )
         # 404 means it's already gone from Supabase, which is the outcome we want.
         if resp.status_code != 404:

@@ -87,7 +87,8 @@ def test_delete_me_removes_supabase_account_and_local_row(client, monkeypatch):
 
     assert client.delete("/me", headers=auth(token)).status_code == 204
     assert str(calls[0].url) == f"{SUPABASE_URL}/auth/v1/admin/users/{user_id}"
-    assert calls[0].headers["Authorization"] == "Bearer service-key"
+    assert calls[0].headers["apikey"] == "sb_secret_test"
+    assert "Authorization" not in calls[0].headers
     assert not _user_exists(client, user_id)
 
 
