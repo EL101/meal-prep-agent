@@ -30,10 +30,9 @@ class SupabaseTokenVerifier:
         base = settings.supabase_url.rstrip("/")
         self.issuer = f"{base}/auth/v1"
         self.audience = settings.supabase_jwt_audience
-        # PyJWKClient caches keys and refetches when it sees an unknown `kid` (key rotation).
-        self.jwks_client = jwks_client or jwt.PyJWKClient(
-            f"{self.issuer}/.well-known/jwks.json", cache_keys=True
-        )
+        # PyJWKClient caches the key set for 5 minutes and refetches early on an unknown `kid`
+        # (key rotation). No per-key cache, so a key Supabase revokes stops working after a refresh.
+        self.jwks_client = jwks_client or jwt.PyJWKClient(f"{self.issuer}/.well-known/jwks.json")
 
     async def verify(self, token: str) -> TokenClaims:
         try:

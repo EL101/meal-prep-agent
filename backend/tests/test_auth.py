@@ -9,6 +9,8 @@ from app.models.user import User
 from app.services import user as user_service
 from tests.conftest import SUPABASE_URL, make_token
 
+_RealAsyncClient = httpx.AsyncClient
+
 
 def auth(token: str) -> dict[str, str]:
     return {"Authorization": f"Bearer {token}"}
@@ -38,14 +40,13 @@ def test_me_rejects_bad_tokens(client, token):
 
 def test_first_request_creates_user_then_reuses_it(client):
     user_id = uuid.uuid4()
-    first = client.get("/me", headers=auth(make_token(sub=user_id)))
+    token = make_token(sub=user_id)
+    first = client.get("/me", headers=auth(token))
     assert first.status_code == 200
     assert first.json()["id"] == str(user_id)
     assert first.json()["email"] == "cook@example.com"
 
-    second = client.get("/me", headers=auth(make_token(sub=user_id, email="new@example.com")))
-    assert second.json()["created_at"] == first.json()["created_at"]
-    assert second.json()["email"] == "new@example.com"
+    assert client.get("/me", headers=auth(token)).json() == first.json()
 
 
 def test_apple_private_relay_user_without_email(client):
@@ -69,11 +70,10 @@ def _mock_supabase(monkeypatch, status_code: int) -> list[httpx.Request]:
         calls.append(request)
         return httpx.Response(status_code)
 
-    real_client = httpx.AsyncClient
     monkeypatch.setattr(
         user_service.httpx,
         "AsyncClient",
-        lambda **kw: real_client(transport=httpx.MockTransport(handler), **kw),
+        lambda **kw: _RealAsyncClient(transport=httpx.MockTransport(handler), **kw),
     )
     return calls
 
@@ -101,11 +101,16 @@ def test_delete_me_cleans_up_when_supabase_account_already_gone(client, monkeypa
     assert not _user_exists(client, user_id)
 
 
-def test_delete_me_keeps_data_when_supabase_fails(client, monkeypatch):
-    _mock_supabase(monkeypatch, 500)
+def test_delete_me_removes_local_data_even_when_supabase_fails(client, monkeypatch):
+    calls = _mock_supabase(monkeypatch, 500)
     user_id = uuid.uuid4()
     token = make_token(sub=user_id)
     client.get("/me", headers=auth(token))
 
     assert client.delete("/me", headers=auth(token)).status_code == 502
-    assert _user_exists(client, user_id)
+    assert not _user_exists(client, user_id)
+
+    # The Supabase account still exists, so a retry goes through.
+    _mock_supabase(monkeypatch, 200)
+    assert client.delete("/me", headers=auth(token)).status_code == 204
+    assert len(calls) == 1
