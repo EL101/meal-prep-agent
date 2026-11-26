@@ -39,3 +39,25 @@ How pricing is determined:
 Evals:
 - Claude only vs. +validation vs. +optimizer
 - Measure: budget violations, calorie/protein error, allergen violations, cost per day, food waste, taste ratings
+
+## Getting started
+
+**Backend** (Python 3.12, [uv](https://docs.astral.sh/uv/))
+
+```bash
+docker compose up -d                 # local Postgres
+cd backend
+cp .env.example .env
+uv sync
+uv run alembic upgrade head          # once models exist: uv run alembic revision --autogenerate -m "..."
+uv run fastapi dev app/main.py       # http://localhost:8000/health
+uv run pytest
+```
+
+**Mobile** (Node 22, Expo)
+
+```bash
+cd mobile
+npm install
+npx expo start                       # scan the QR code with Expo Go
+```
