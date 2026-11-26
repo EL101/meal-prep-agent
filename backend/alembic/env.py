@@ -25,7 +25,8 @@ from app.config import get_settings
 from app.db import Base
 
 target_metadata = Base.metadata
-config.set_main_option("sqlalchemy.url", get_settings().database_url)
+# Double "%" so ConfigParser interpolation leaves URL-encoded passwords intact.
+config.set_main_option("sqlalchemy.url", get_settings().database_url.replace("%", "%%"))
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired:
