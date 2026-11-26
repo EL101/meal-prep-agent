@@ -33,3 +33,18 @@ jobs:
           cache-dependency-path: mobile/package-lock.json
       - run: npm ci
       - run: npx tsc --noEmit
+
+  deploy-backend:
+    # CD: only on pushes to main, and only after both CI jobs pass.
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [backend, mobile]
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    env:
+      RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - run: npm install -g @railway/cli
+      - run: railway up --ci --service "${{ vars.RAILWAY_SERVICE }}"

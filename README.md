@@ -63,3 +63,12 @@ cd mobile
 npm install
 npx expo start                       # scan the QR code with Expo Go
 ```
+
+## CI/CD
+
+GitHub Actions (`.github/workflows/ci.yml`) runs backend lint + tests and the mobile type check on every PR and push to `main`. On `main`, once those pass, it deploys `backend/` to Railway.
+
+One-time Railway setup:
+1. Create a Railway project with a service for the backend and add a Postgres database. Set the service's `DATABASE_URL` to the Postgres URL with the `postgresql+asyncpg://` scheme.
+2. In the Railway project settings, create a **project token**.
+3. In GitHub → Settings → Secrets and variables → Actions, add the secret `RAILWAY_TOKEN` (the token) and the variable `RAILWAY_SERVICE` (the service name).
