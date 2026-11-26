@@ -1,34 +1,27 @@
 import Svg, { Path } from 'react-native-svg';
 
-export function AppleLogo({ color = '#FFFFFF' }: { color?: string }) {
+// Google's standard "G" mark, path for path from Google's sign-in branding kit
+// (developers.google.com/identity/branding-guidelines). Google allows custom buttons that use
+// this mark unaltered, which keeps the button in the app's own type and shape.
+// Apple's button is the system one from expo-apple-authentication, so it needs no logo here.
+export function GoogleLogo({ size = 18 }: { size?: number }) {
   return (
-    <Svg width={16} height={19} viewBox="0 0 16 19" accessible={false}>
+    <Svg width={size} height={size} viewBox="0 0 48 48" accessible={false}>
       <Path
-        d="M13.2 10.1c0-2.4 2-3.5 2-3.6-1.1-1.6-2.8-1.8-3.4-1.8-1.4-.2-2.8.8-3.5.8-.7 0-1.8-.8-3-.8C3.7 4.8 2.2 5.7 1.4 7.1c-1.7 2.9-.4 7.2 1.2 9.6.8 1.2 1.7 2.4 3 2.4 1.2 0 1.6-.8 3.1-.8s1.8.8 3.1.8c1.3 0 2.1-1.2 2.9-2.3.9-1.3 1.3-2.6 1.3-2.7-.1 0-2.8-1-2.8-4zM10.8 3c.6-.8 1.1-1.9 1-3-1 0-2.1.6-2.8 1.4-.6.7-1.1 1.8-1 2.9 1.1.1 2.1-.5 2.8-1.3z"
-        fill={color}
-      />
-    </Svg>
-  );
-}
-
-export function GoogleLogo() {
-  return (
-    <Svg width={18} height={18} viewBox="0 0 18 18" accessible={false}>
-      <Path
-        d="M17.6 9.2c0-.6-.1-1.2-.2-1.8H9v3.4h4.8c-.2 1.1-.8 2-1.8 2.7v2.2h2.9c1.7-1.6 2.7-3.9 2.7-6.5z"
-        fill="#4285F4"
-      />
-      <Path
-        d="M9 18c2.4 0 4.5-.8 5.9-2.2L12 13.6c-.8.5-1.8.9-3 .9-2.3 0-4.3-1.6-5-3.7H1v2.3C2.5 16 5.5 18 9 18z"
-        fill="#34A853"
-      />
-      <Path
-        d="M4 10.8c-.2-.5-.3-1.1-.3-1.8s.1-1.2.3-1.8V4.9H1C.4 6.1 0 7.5 0 9s.4 2.9 1 4.1l3-2.3z"
-        fill="#FBBC05"
-      />
-      <Path
-        d="M9 3.6c1.3 0 2.5.5 3.4 1.3L15 2.4C13.5.9 11.4 0 9 0 5.5 0 2.5 2 1 4.9l3 2.3c.7-2.1 2.7-3.6 5-3.6z"
         fill="#EA4335"
+        d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"
+      />
+      <Path
+        fill="#4285F4"
+        d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"
+      />
+      <Path
+        fill="#FBBC05"
+        d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"
+      />
+      <Path
+        fill="#34A853"
+        d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"
       />
     </Svg>
   );
