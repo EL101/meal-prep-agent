@@ -3,6 +3,7 @@ import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { AppState, Platform } from 'react-native';
 
 import { config } from './config';
+import { secureStorage } from './secureStorage';
 
 export const isSupabaseConfigured = Boolean(config.supabaseUrl && config.supabasePublishableKey);
 
@@ -11,7 +12,8 @@ export const isSupabaseConfigured = Boolean(config.supabaseUrl && config.supabas
 export const supabase: SupabaseClient | null = isSupabaseConfigured
   ? createClient(config.supabaseUrl, config.supabasePublishableKey, {
       auth: {
-        storage: AsyncStorage,
+        // Native: encrypted Keychain/Keystore. Web has no SecureStore, so it uses localStorage.
+        storage: Platform.OS === 'web' ? AsyncStorage : secureStorage,
         autoRefreshToken: true,
         persistSession: true,
         // Native sign-in hands Supabase an ID token or a code; there's no redirect URL to parse.
