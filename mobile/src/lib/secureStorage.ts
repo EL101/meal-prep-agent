@@ -63,8 +63,10 @@ export const secureStorage = {
     for (let i = 0; i < chunks.length; i++) {
       await SecureStore.setItemAsync(chunkKey(key, i), chunks[i]);
     }
-    await SecureStore.setItemAsync(key, String(chunks.length));
+    // Drop leftover chunks from a longer previous value before the count shrinks, so the old count
+    // still covers them if this is interrupted and a later removeItem can clean them up.
     await removeChunks(key, chunks.length, previous);
+    await SecureStore.setItemAsync(key, String(chunks.length));
   },
 
   async removeItem(key: string): Promise<void> {
