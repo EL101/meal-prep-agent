@@ -6,6 +6,8 @@ One-time configuration for services the app depends on.
 
 Apple and Google sign-in use native modules that Expo Go doesn't include, so run a development build (`npx expo run:ios|android` locally, or `npx eas-cli@latest build --profile development`). Expo Go and web still work for email sign-in; they hide the Apple and Google buttons.
 
+To test on a physical phone, start the backend with `uv run fastapi dev app/main.py --host 0.0.0.0` (only on a network you trust) and set `EXPO_PUBLIC_API_URL` to your computer's LAN IP, e.g. `http://192.168.1.20:8000`.
+
 ## Sign-in
 
 The app signs in with Supabase (Apple, Google, or a 6-digit email code), then calls the backend's `/me` with the Supabase access token. The backend verifies the token and creates the user row on first sign-in.

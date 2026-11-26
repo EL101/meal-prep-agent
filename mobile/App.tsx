@@ -4,7 +4,7 @@ import { DMSans_600SemiBold } from '@expo-google-fonts/dm-sans/600SemiBold';
 import { DMSans_700Bold } from '@expo-google-fonts/dm-sans/700Bold';
 import { useFonts } from 'expo-font';
 import { StatusBar } from 'expo-status-bar';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
@@ -90,13 +90,19 @@ function SignedOut() {
 function SignedIn({ userId }: { userId: string }) {
   const [me, setMe] = useState<Me | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // Only the latest request may update the screen, so a slow /me for a previous account (or an
+  // earlier retry) can't overwrite the current one.
+  const latestRequest = useRef(0);
 
   // The first /me call verifies the Supabase token on the backend and creates the user's row.
   const load = useCallback(async () => {
+    const request = ++latestRequest.current;
     setError(null);
     try {
-      setMe(await getMe());
+      const result = await getMe();
+      if (request === latestRequest.current) setMe(result);
     } catch (e) {
+      if (request !== latestRequest.current) return;
       if (e instanceof ApiError) {
         setError(
           e.status === 401

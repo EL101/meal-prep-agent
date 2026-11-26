@@ -2,13 +2,8 @@
 // backend's /me, which verifies the token and creates the user row on first sign-in.
 
 import * as AppleAuthentication from 'expo-apple-authentication';
+import { isRunningInExpoGo } from 'expo';
 import * as Crypto from 'expo-crypto';
-import {
-  GoogleSignin,
-  isErrorWithCode,
-  isSuccessResponse,
-  statusCodes,
-} from '@react-native-google-signin/google-signin';
 import { Platform } from 'react-native';
 
 import { config } from '../lib/config';
@@ -20,6 +15,9 @@ export class SignInError extends Error {}
 /** Returned when the user closes the provider's sheet, which isn't an error. */
 export const CANCELLED = 'cancelled' as const;
 type Result = void | typeof CANCELLED;
+
+const isErrorWithCode = (e: unknown): e is { code: string } =>
+  typeof e === 'object' && e !== null && typeof (e as { code?: unknown }).code === 'string';
 
 // --- Apple (iOS only) -----------------------------------------------------------------------
 
@@ -75,21 +73,27 @@ export async function signInWithApple(): Promise<Result> {
 
 // iOS needs its own client ID (and the URL scheme app.config.ts derives from it); Android only
 // needs the web client ID, plus an Android client registered with the app's SHA-1.
+// Expo Go doesn't ship the Google Sign-In native module, and importing the package there throws
+// at load time, so it's only required once we know the module exists.
 export const isGoogleSignInConfigured =
   Platform.OS !== 'web' &&
+  !isRunningInExpoGo() &&
   Boolean(config.googleWebClientId) &&
   (Platform.OS !== 'ios' || Boolean(config.googleIosClientId));
 
-let googleConfigured = false;
+type GoogleSdk = typeof import('@react-native-google-signin/google-signin');
+let googleSdk: GoogleSdk | null = null;
 
-function configureGoogle() {
-  if (googleConfigured) return;
-  GoogleSignin.configure({
+function loadGoogle(): GoogleSdk {
+  if (googleSdk) return googleSdk;
+  const sdk: GoogleSdk = require('@react-native-google-signin/google-signin');
+  sdk.GoogleSignin.configure({
     // The ID token's audience is the web client ID, which is the one Supabase is told to accept.
     webClientId: config.googleWebClientId,
     iosClientId: config.googleIosClientId || undefined,
   });
-  googleConfigured = true;
+  googleSdk = sdk;
+  return sdk;
 }
 
 export async function signInWithGoogle(): Promise<Result> {
@@ -97,7 +101,7 @@ export async function signInWithGoogle(): Promise<Result> {
   if (!isGoogleSignInConfigured) {
     throw new SignInError('Google sign-in isn’t set up yet.');
   }
-  configureGoogle();
+  const { GoogleSignin, isSuccessResponse, statusCodes } = loadGoogle();
 
   let idToken: string | null;
   try {
@@ -146,9 +150,10 @@ export async function verifyEmailCode(email: string, code: string): Promise<void
 
 export async function signOut(): Promise<void> {
   if (isGoogleSignInConfigured) {
-    configureGoogle();
     // Clears Google's cached account so the next sign-in shows the account picker again.
-    await GoogleSignin.signOut().catch(() => {});
+    await loadGoogle().GoogleSignin.signOut().catch(() => {});
   }
-  await requireSupabase().auth.signOut();
+  // Local scope clears this device's session before calling the server, so signing out works
+  // offline too. It still revokes this device's refresh token when the server is reachable.
+  await requireSupabase().auth.signOut({ scope: 'local' });
 }
