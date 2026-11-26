@@ -54,6 +54,8 @@ uv run fastapi dev app/main.py       # http://localhost:8000/health
 uv run pytest
 ```
 
+Backend layout: `api/` (routes) → `services/` (business logic) → `repositories/` (queries) → `models/` (tables). `schemas/` holds the Pydantic request/response models.
+
 **Mobile** (Node 22, Expo)
 
 ```bash
