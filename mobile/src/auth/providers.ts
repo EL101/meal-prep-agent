@@ -69,17 +69,16 @@ export async function signInWithApple(): Promise<Result> {
   }
 }
 
-// --- Google (iOS and Android) ---------------------------------------------------------------
+// --- Google (iOS) ---------------------------------------------------------------------------
 
-// iOS needs its own client ID (and the URL scheme app.config.ts derives from it); Android only
-// needs the web client ID, plus an Android client registered with the app's SHA-1.
+// iOS needs its own client ID (and the URL scheme app.config.ts derives from it).
 // Expo Go doesn't ship the Google Sign-In native module, and importing the package there throws
 // at load time, so it's only required once we know the module exists.
 export const isGoogleSignInConfigured =
   Platform.OS !== 'web' &&
   !isRunningInExpoGo() &&
   Boolean(config.googleWebClientId) &&
-  (Platform.OS !== 'ios' || Boolean(config.googleIosClientId));
+  Boolean(config.googleIosClientId);
 
 type GoogleSdk = typeof import('@react-native-google-signin/google-signin');
 let googleSdk: GoogleSdk | null = null;
@@ -105,9 +104,6 @@ export async function signInWithGoogle(): Promise<Result> {
 
   let idToken: string | null;
   try {
-    if (Platform.OS === 'android') {
-      await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
-    }
     const response = await GoogleSignin.signIn();
     if (!isSuccessResponse(response)) return CANCELLED;
     idToken = response.data.idToken;
@@ -115,9 +111,6 @@ export async function signInWithGoogle(): Promise<Result> {
     if (isErrorWithCode(e)) {
       if (e.code === statusCodes.SIGN_IN_CANCELLED || e.code === statusCodes.IN_PROGRESS) {
         return CANCELLED;
-      }
-      if (e.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
-        throw new SignInError('Google sign-in needs Google Play services on this device.');
       }
     }
     throw new SignInError('Google sign-in didn’t work. Try again.');

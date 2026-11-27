@@ -1,6 +1,6 @@
 import * as SecureStore from 'expo-secure-store';
 
-// Supabase session storage backed by the iOS Keychain / Android Keystore, so access and refresh
+// Supabase session storage backed by the iOS Keychain, so access and refresh
 // tokens are encrypted at rest. A session is larger than the ~2 KB SecureStore recommends per
 // value, so it's split across numbered chunks, with the chunk count stored under the key itself.
 

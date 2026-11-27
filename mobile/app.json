@@ -2,6 +2,10 @@
   "expo": {
     "name": "Muscle Mom",
     "slug": "mobile",
+    "platforms": [
+      "ios",
+      "web"
+    ],
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -9,16 +13,6 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.musclemom.app"
-    },
-    "android": {
-      "package": "com.musclemom.app",
-      "adaptiveIcon": {
-        "backgroundColor": "#FCF3E4",
-        "foregroundImage": "./assets/android-icon-foreground.png",
-        "backgroundImage": "./assets/android-icon-background.png",
-        "monochromeImage": "./assets/android-icon-monochrome.png"
-      },
-      "predictiveBackGestureEnabled": false
     },
     "web": {
       "favicon": "./assets/favicon.png"
