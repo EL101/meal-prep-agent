@@ -19,7 +19,9 @@ type Props = {
   onBack: () => void;
 };
 
-const CODE_LENGTH = 6;
+// Supabase's code length is a project setting (6 to 10 digits), so accept any of them.
+const MIN_CODE_LENGTH = 6;
+const MAX_CODE_LENGTH = 10;
 const looksLikeEmail = (s: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s);
 
 // Two steps: send a one-time code to the address, then enter it. Signing in with a new address
@@ -55,7 +57,7 @@ export default function EmailSignInScreen({ onBack }: Props) {
 
   const verify = () => run(() => verifyEmailCode(trimmedEmail, code));
 
-  const canSubmit = step === 'email' ? looksLikeEmail(trimmedEmail) : code.length === CODE_LENGTH;
+  const canSubmit = step === 'email' ? looksLikeEmail(trimmedEmail) : code.length >= MIN_CODE_LENGTH;
 
   return (
     <KeyboardAvoidingView
@@ -84,7 +86,7 @@ export default function EmailSignInScreen({ onBack }: Props) {
         </Text>
         <Text style={styles.subtitle}>
           {step === 'email'
-            ? 'We’ll send you a 6-digit code. No password needed.'
+            ? 'We’ll email you a sign-in code. No password needed.'
             : `Enter the code we sent to ${trimmedEmail}.`}
         </Text>
 
@@ -112,18 +114,18 @@ export default function EmailSignInScreen({ onBack }: Props) {
             key="code"
             style={[styles.input, styles.codeInput]}
             value={code}
-            onChangeText={(text) => setCode(text.replace(/\D/g, '').slice(0, CODE_LENGTH))}
+            onChangeText={(text) => setCode(text.replace(/\D/g, '').slice(0, MAX_CODE_LENGTH))}
             placeholder="123456"
             placeholderTextColor={colors.inkMuted}
             keyboardType="number-pad"
             autoComplete="one-time-code"
             textContentType="oneTimeCode"
-            maxLength={CODE_LENGTH}
+            maxLength={MAX_CODE_LENGTH}
             returnKeyType="done"
             onSubmitEditing={() => canSubmit && !busy && verify()}
             editable={!busy}
             autoFocus
-            accessibilityLabel="6-digit code"
+            accessibilityLabel="Sign-in code"
           />
         )}
 
