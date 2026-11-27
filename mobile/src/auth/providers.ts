@@ -146,6 +146,8 @@ export async function signInWithGoogle(): Promise<Result> {
 async function signInWithGoogleInBrowser(): Promise<Result> {
   const supabase = requireSupabase();
   const redirectTo = Linking.createURL('auth/callback');
+  // Shown in the Metro terminal so the exact address can be added to Supabase's Redirect URLs.
+  if (__DEV__) console.log('[auth] Google redirect URL (add it to Supabase Redirect URLs):', redirectTo);
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: 'google',
     options: { redirectTo, skipBrowserRedirect: true },
