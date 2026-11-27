@@ -6,7 +6,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
-    database_url: str = "postgresql+asyncpg://postgres:postgres@localhost:5432/mealprep"
+    database_url: str = "postgresql+asyncpg://postgres:postgres@localhost:5433/mealprep"
 
     # Supabase project URL, e.g. https://abcd1234.supabase.co
     supabase_url: str = ""
