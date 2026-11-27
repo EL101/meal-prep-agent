@@ -2,6 +2,7 @@
   "expo": {
     "name": "Muscle Mom",
     "slug": "mobile",
+    "scheme": "musclemom",
     "platforms": [
       "ios",
       "web"

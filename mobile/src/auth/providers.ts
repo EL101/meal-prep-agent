@@ -4,6 +4,8 @@
 import * as AppleAuthentication from 'expo-apple-authentication';
 import { isRunningInExpoGo } from 'expo';
 import * as Crypto from 'expo-crypto';
+import * as Linking from 'expo-linking';
+import * as WebBrowser from 'expo-web-browser';
 import { Platform } from 'react-native';
 
 import { config } from '../lib/config';
@@ -71,11 +73,11 @@ export async function signInWithApple(): Promise<Result> {
 
 // --- Google (iOS and web) ------------------------------------------------------------------
 
-// iOS uses the native Google SDK, which needs its own client ID (and the URL scheme
-// app.config.ts derives from it). Expo Go doesn't ship that native module, and importing the
-// package there throws at load time, so it's only required once we know the module exists.
-// Web sends the browser to Supabase's Google sign-in page, which redirects back to the app; the
-// web client ID only signals that the Google provider is set up.
+// iOS development builds with an iOS client ID use the native Google SDK, which needs that client
+// ID (and the URL scheme app.config.ts derives from it). Expo Go doesn't ship that native module,
+// and importing the package there throws at load time, so it's only required once we know the
+// module exists. Everywhere else (web, Expo Go) goes through Supabase's Google sign-in page, for
+// which the web client ID only signals that the Google provider is set up.
 const isWeb = Platform.OS === 'web';
 const isNativeGoogleConfigured =
   Platform.OS === 'ios' &&
@@ -84,7 +86,7 @@ const isNativeGoogleConfigured =
   Boolean(config.googleIosClientId);
 
 export const isGoogleSignInConfigured =
-  (isWeb && Boolean(config.googleWebClientId)) || isNativeGoogleConfigured;
+  (isWeb || Platform.OS === 'ios') && Boolean(config.googleWebClientId);
 
 type GoogleSdk = typeof import('@react-native-google-signin/google-signin');
 let googleSdk: GoogleSdk | null = null;
@@ -115,6 +117,7 @@ export async function signInWithGoogle(): Promise<Result> {
     if (error) throw new SignInError(error.message);
     return;
   }
+  if (!isNativeGoogleConfigured) return signInWithGoogleInBrowser();
   const { GoogleSignin, isSuccessResponse, statusCodes } = loadGoogle();
 
   let idToken: string | null;
@@ -136,6 +139,35 @@ export async function signInWithGoogle(): Promise<Result> {
 
   const { error } = await supabase.auth.signInWithIdToken({ provider: 'google', token: idToken });
   if (error) throw new SignInError(error.message);
+}
+
+// Opens Supabase's Google sign-in page in an in-app browser, which redirects back to the app
+// (exp://… in Expo Go, musclemom://… in a build) with the session tokens in the URL fragment.
+async function signInWithGoogleInBrowser(): Promise<Result> {
+  const supabase = requireSupabase();
+  const redirectTo = Linking.createURL('auth/callback');
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: 'google',
+    options: { redirectTo, skipBrowserRedirect: true },
+  });
+  if (error || !data.url) throw new SignInError(error?.message ?? 'Google sign-in didn’t work.');
+
+  const result = await WebBrowser.openAuthSessionAsync(data.url, redirectTo);
+  if (result.type !== 'success') return CANCELLED;
+
+  const params = new URLSearchParams(result.url.split('#')[1] ?? result.url.split('?')[1] ?? '');
+  const description = params.get('error_description');
+  if (description) throw new SignInError(description.replace(/\+/g, ' '));
+  const accessToken = params.get('access_token');
+  const refreshToken = params.get('refresh_token');
+  if (!accessToken || !refreshToken) {
+    throw new SignInError('Google sign-in didn’t finish. Try again.');
+  }
+  const { error: sessionError } = await supabase.auth.setSession({
+    access_token: accessToken,
+    refresh_token: refreshToken,
+  });
+  if (sessionError) throw new SignInError(sessionError.message);
 }
 
 // --- Email (one-time code) ------------------------------------------------------------------
