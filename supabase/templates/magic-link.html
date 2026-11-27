@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
+<meta name="supported-color-schemes" content="light">
+<title>Muscle Mom</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+</head>
+<body style="margin:0;padding:0;background-color:#FCF3E4;">
+<!-- Inbox preview text -->
+<div style="display:none;max-height:0;overflow:hidden;opacity:0;">Your Muscle Mom sign-in code is {{ .Token }}</div>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#FCF3E4;">
+  <tr>
+    <td align="center" style="padding:40px 16px;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:480px;">
+        <tr>
+          <td align="center" style="padding-bottom:20px;">
+            <img src="https://raw.githubusercontent.com/EL101/meal-prep-agent/main/mobile/assets/icon.png" width="72" height="72" alt="Muscle Mom" style="display:block;width:72px;height:72px;border-radius:18px;border:0;">
+          </td>
+        </tr>
+        <tr>
+          <td style="background-color:#FFFFFF;border:1.5px solid #E6D6BE;border-radius:20px;padding:36px 32px;font-family:'DM Sans',Helvetica,Arial,sans-serif;">
+            <h1 style="margin:0 0 12px;font-size:26px;line-height:34px;font-weight:700;color:#3A1F14;text-align:center;">Your sign-in code</h1>
+            <p style="margin:0 0 28px;font-size:16px;line-height:24px;color:#6E5A4E;text-align:center;">Enter this code in the Muscle Mom app to sign in.</p>
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+              <tr>
+                <td align="center" style="background-color:#FCF3E4;border-radius:14px;padding:20px 12px;">
+                  <span style="font-family:'DM Sans',Helvetica,Arial,sans-serif;font-size:36px;line-height:40px;font-weight:700;letter-spacing:8px;color:#D8281E;">{{ .Token }}</span>
+                </td>
+              </tr>
+            </table>
+            <p style="margin:24px 0 0;font-size:14px;line-height:20px;color:#6E5A4E;text-align:center;">This code expires in 1 hour. If you didn&rsquo;t ask to sign in, you can ignore this email.</p>
+          </td>
+        </tr>
+        <tr>
+          <td align="center" style="padding:24px 16px 0;font-family:'DM Sans',Helvetica,Arial,sans-serif;font-size:12px;line-height:18px;color:#6E5A4E;">
+            Sent to {{ .Email }} by Muscle Mom<br>
+            High-protein meal prep, planned around your budget.
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>
+</body>
+</html>
