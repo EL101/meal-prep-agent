@@ -69,16 +69,22 @@ export async function signInWithApple(): Promise<Result> {
   }
 }
 
-// --- Google (iOS) ---------------------------------------------------------------------------
+// --- Google (iOS and web) ------------------------------------------------------------------
 
-// iOS needs its own client ID (and the URL scheme app.config.ts derives from it).
-// Expo Go doesn't ship the Google Sign-In native module, and importing the package there throws
-// at load time, so it's only required once we know the module exists.
-export const isGoogleSignInConfigured =
-  Platform.OS !== 'web' &&
+// iOS uses the native Google SDK, which needs its own client ID (and the URL scheme
+// app.config.ts derives from it). Expo Go doesn't ship that native module, and importing the
+// package there throws at load time, so it's only required once we know the module exists.
+// Web sends the browser to Supabase's Google sign-in page, which redirects back to the app; the
+// web client ID only signals that the Google provider is set up.
+const isWeb = Platform.OS === 'web';
+const isNativeGoogleConfigured =
+  Platform.OS === 'ios' &&
   !isRunningInExpoGo() &&
   Boolean(config.googleWebClientId) &&
   Boolean(config.googleIosClientId);
+
+export const isGoogleSignInConfigured =
+  (isWeb && Boolean(config.googleWebClientId)) || isNativeGoogleConfigured;
 
 type GoogleSdk = typeof import('@react-native-google-signin/google-signin');
 let googleSdk: GoogleSdk | null = null;
@@ -99,6 +105,15 @@ export async function signInWithGoogle(): Promise<Result> {
   const supabase = requireSupabase();
   if (!isGoogleSignInConfigured) {
     throw new SignInError('Google sign-in isn’t set up yet.');
+  }
+  if (isWeb) {
+    // Leaves the page; Supabase picks up the session from the URL when the app loads again.
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo: window.location.origin },
+    });
+    if (error) throw new SignInError(error.message);
+    return;
   }
   const { GoogleSignin, isSuccessResponse, statusCodes } = loadGoogle();
 
@@ -142,7 +157,7 @@ export async function verifyEmailCode(email: string, code: string): Promise<void
 // --- Sign out -------------------------------------------------------------------------------
 
 export async function signOut(): Promise<void> {
-  if (isGoogleSignInConfigured) {
+  if (isNativeGoogleConfigured) {
     // Clears Google's cached account so the next sign-in shows the account picker again.
     await loadGoogle().GoogleSignin.signOut().catch(() => {});
   }

@@ -16,8 +16,10 @@ export const supabase: SupabaseClient | null = isSupabaseConfigured
         storage: Platform.OS === 'web' ? AsyncStorage : secureStorage,
         autoRefreshToken: true,
         persistSession: true,
-        // Native sign-in hands Supabase an ID token or a code; there's no redirect URL to parse.
-        detectSessionInUrl: false,
+        // Web Google sign-in redirects back with ?code=..., which Supabase exchanges for a session
+        // (PKCE). Native sign-in hands Supabase an ID token or a code, so there's no URL to parse.
+        detectSessionInUrl: Platform.OS === 'web',
+        flowType: Platform.OS === 'web' ? 'pkce' : 'implicit',
       },
     })
   : null;
