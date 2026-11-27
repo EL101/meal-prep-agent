@@ -1,3 +1,5 @@
+# Local dev stack: `docker compose up -d` starts Postgres and the API on http://localhost:8000.
+# The API runs migrations on start and reloads when files in backend/app change.
 services:
   postgres:
     image: postgres:16
@@ -7,6 +9,30 @@ services:
       POSTGRES_DB: mealprep
     ports: ["127.0.0.1:5432:5432"]
     volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d mealprep"]
+      interval: 2s
+      timeout: 3s
+      retries: 15
+
+  api:
+    build: ./backend
+    # Supabase keys etc. come from backend/.env (copy backend/.env.example).
+    env_file:
+      - path: backend/.env
+        required: false
+    environment:
+      # Inside Docker, Postgres is reached by its service name, not localhost.
+      DATABASE_URL: postgresql+asyncpg://postgres:postgres@postgres:5432/mealprep
+    command: sh -c "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
+    volumes:
+      - ./backend/app:/app/app
+      - ./backend/alembic:/app/alembic
+    # Published on all interfaces so a phone on the same Wi-Fi can reach it at your LAN IP.
+    ports: ["8000:8000"]
+    depends_on:
+      postgres:
+        condition: service_healthy
 
 volumes:
   pgdata:

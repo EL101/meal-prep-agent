@@ -42,17 +42,14 @@ Evals:
 
 ## Getting started
 
-**Backend** (Python 3.12, [uv](https://docs.astral.sh/uv/))
+**Backend** (Docker)
 
 ```bash
-docker compose up -d                 # local Postgres
-cd backend
-cp .env.example .env
-uv sync
-uv run alembic upgrade head          # once models exist: uv run alembic revision --autogenerate -m "..."
-uv run fastapi dev app/main.py       # http://localhost:8000/health
-uv run pytest
+cp backend/.env.example backend/.env   # first time: add your Supabase keys
+docker compose up -d                   # Postgres + API on http://localhost:8000, with migrations and auto-reload
 ```
+
+For tests and lint (Python 3.12, [uv](https://docs.astral.sh/uv/)): `cd backend && uv sync && uv run pytest`.
 
 Backend layout: `api/` (routes) → `services/` (business logic) → `repositories/` (queries) → `models/` (tables). `schemas/` holds the Pydantic request/response models.
 
