@@ -42,17 +42,14 @@ Evals:
 
 ## Getting started
 
-**Backend** (Python 3.12, [uv](https://docs.astral.sh/uv/))
+**Backend** (Docker)
 
 ```bash
-docker compose up -d                 # local Postgres
-cd backend
-cp .env.example .env
-uv sync
-uv run alembic upgrade head          # once models exist: uv run alembic revision --autogenerate -m "..."
-uv run fastapi dev app/main.py       # http://localhost:8000/health
-uv run pytest
+cp backend/.env.example backend/.env   # first time: add your Supabase keys
+docker compose up -d                   # Postgres + API on http://localhost:8000, with migrations and auto-reload
 ```
+
+For tests and lint (Python 3.12, [uv](https://docs.astral.sh/uv/)): `cd backend && uv sync && uv run pytest && uv run ruff check . && uv run ruff format --check .`.
 
 Backend layout: `api/` (routes) → `services/` (business logic) → `repositories/` (queries) → `models/` (tables). `schemas/` holds the Pydantic request/response models.
 
@@ -61,14 +58,8 @@ Backend layout: `api/` (routes) → `services/` (business logic) → `repositori
 ```bash
 cd mobile
 npm install
-npx expo start                       # scan the QR code with Expo Go
+cp .env.example .env.local           # Supabase, backend URL and Google client IDs
+npm run dev                          # dev server + opens the web app; press i (iOS) or a (Android)
 ```
 
-## CI/CD
-
-GitHub Actions (`.github/workflows/ci.yml`) runs backend lint + tests and the mobile type check on every PR and push to `main`. On `main`, once those pass, it deploys `backend/` to Railway.
-
-One-time Railway setup:
-1. Create a Railway project with a service for the backend and add a Postgres database. Set the service's `DATABASE_URL` to the Postgres URL with the `postgresql+asyncpg://` scheme.
-2. In the Railway project settings, create a **project token**.
-3. In GitHub → Settings → Secrets and variables → Actions, add the secret `RAILWAY_TOKEN` (the token) and the variable `RAILWAY_SERVICE` (the service name).
+One-time setup for sign-in providers and deploys: [docs/SETUP.md](docs/SETUP.md).

@@ -1,0 +1,46 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { createClient, type SupabaseClient } from '@supabase/supabase-js';
+import { AppState, Platform } from 'react-native';
+
+import { config } from './config';
+import { secureStorage } from './secureStorage';
+
+export const isSupabaseConfigured = Boolean(config.supabaseUrl && config.supabasePublishableKey);
+
+// Null until EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY are set, so the
+// sign-in screen still renders (and explains what's missing) before Supabase is set up.
+export const supabase: SupabaseClient | null = isSupabaseConfigured
+  ? createClient(config.supabaseUrl, config.supabasePublishableKey, {
+      auth: {
+        // Native: encrypted Keychain/Keystore. Web has no SecureStore, so it uses localStorage.
+        storage: Platform.OS === 'web' ? AsyncStorage : secureStorage,
+        autoRefreshToken: true,
+        persistSession: true,
+        // Web Google sign-in redirects back with ?code=..., which Supabase exchanges for a session
+        // (PKCE). Native sign-in hands Supabase an ID token or a code, so there's no URL to parse.
+        detectSessionInUrl: Platform.OS === 'web',
+        flowType: Platform.OS === 'web' ? 'pkce' : 'implicit',
+      },
+    })
+  : null;
+
+export function requireSupabase(): SupabaseClient {
+  if (!supabase) {
+    throw new Error(
+      'Sign-in isn’t set up yet: add EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY to mobile/.env.local.',
+    );
+  }
+  return supabase;
+}
+
+// Refresh the session only while the app is in the foreground, as Supabase recommends for
+// React Native. Web refreshes on its own.
+if (supabase && Platform.OS !== 'web') {
+  AppState.addEventListener('change', (state) => {
+    if (state === 'active') {
+      supabase.auth.startAutoRefresh();
+    } else {
+      supabase.auth.stopAutoRefresh();
+    }
+  });
+}
