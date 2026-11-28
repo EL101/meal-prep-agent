@@ -2,7 +2,8 @@ import * as SecureStore from 'expo-secure-store';
 
 // Supabase session storage backed by the iOS Keychain, so access and refresh
 // tokens are encrypted at rest. A session is larger than the ~2 KB SecureStore recommends per
-// value, so it's split across numbered chunks, with the chunk count stored under the key itself.
+// value, so it's split across numbered chunks. The key itself holds a small index naming which
+// set of chunks is current.
 
 // Measured in UTF-8 bytes, under the ~2,048-byte limit some iOS versions enforce.
 const CHUNK_BYTES = 1800;
@@ -29,53 +30,92 @@ function toChunks(value: string): string[] {
   return chunks;
 }
 
-const chunkKey = (key: string, i: number) => `${key}.${i}`;
+// Each write goes to a fresh generation ('a' or 'b', alternating) and only then switches the
+// index to it, so a read sees either the old value or the new one, never chunks from both.
+// '' is the format before generations, whose chunks are `${key}.${i}`.
+type Gen = '' | 'a' | 'b';
+type Index = {
+  current: [Gen, number] | null;
+  // Chunk sets that may still exist and should be deleted: an old generation, or a write that
+  // was interrupted. Recorded before chunks are written, so removeItem can always find them.
+  stale: [Gen, number][];
+};
 
-async function chunkCount(key: string): Promise<number> {
-  const count = Number(await SecureStore.getItemAsync(key));
-  return Number.isInteger(count) && count > 0 ? count : 0;
+const chunkKey = (key: string, gen: Gen, i: number) => (gen ? `${key}.${gen}.${i}` : `${key}.${i}`);
+
+async function readIndex(key: string): Promise<Index> {
+  const raw = await SecureStore.getItemAsync(key);
+  if (!raw) return { current: null, stale: [] };
+  const legacy = Number(raw);
+  if (Number.isInteger(legacy)) return { current: legacy > 0 ? ['', legacy] : null, stale: [] };
+  try {
+    const index = JSON.parse(raw) as Index;
+    return { current: index.current ?? null, stale: index.stale ?? [] };
+  } catch {
+    return { current: null, stale: [] };
+  }
 }
 
-// Deletes from the end, so an interrupted removal leaves the count in place and a retry (or a
-// read, which sees a missing chunk and returns null) still knows which chunks may remain.
-async function removeChunks(key: string, from: number, to: number) {
+// One entry per generation, keeping the highest count, so the index stays small.
+function merge(sets: [Gen, number][]): [Gen, number][] {
+  const most = new Map<Gen, number>();
+  for (const [gen, count] of sets) most.set(gen, Math.max(count, most.get(gen) ?? 0));
+  return [...most];
+}
+
+const writeIndex = (key: string, index: Index) =>
+  SecureStore.setItemAsync(key, JSON.stringify(index));
+
+// Deletes from the end, so an interrupted removal leaves earlier chunks for the next retry.
+async function removeChunks(key: string, gen: Gen, from: number, to: number) {
   for (let i = to - 1; i >= from; i--) {
-    await SecureStore.deleteItemAsync(chunkKey(key, i));
+    await SecureStore.deleteItemAsync(chunkKey(key, gen, i));
   }
 }
 
 export const secureStorage = {
   async getItem(key: string): Promise<string | null> {
-    const count = await chunkCount(key);
-    if (count === 0) return null;
+    const { current } = await readIndex(key);
+    if (!current) return null;
+    const [gen, count] = current;
     const parts: string[] = [];
     for (let i = 0; i < count; i++) {
-      const part = await SecureStore.getItemAsync(chunkKey(key, i));
-      if (part === null) return null; // Half-written value: treat as signed out.
+      const part = await SecureStore.getItemAsync(chunkKey(key, gen, i));
+      if (part === null) return null; // Damaged value: treat as signed out.
       parts.push(part);
     }
     return parts.join('');
   },
 
   async setItem(key: string, value: string): Promise<void> {
-    const previous = await chunkCount(key);
+    const { current, stale } = await readIndex(key);
+    const gen: Gen = current?.[0] === 'a' ? 'b' : 'a';
     const chunks = toChunks(value);
-    // The stored count never drops below the chunks that may exist: raise it before writing
-    // more chunks, and lower it only after stale ones are gone. An interrupted write then
-    // always leaves a count that lets removeItem find every chunk.
-    if (chunks.length > previous) {
-      await SecureStore.setItemAsync(key, String(chunks.length));
-    }
+
+    // 1. Note that this generation's chunks are about to exist, then write them. The index
+    //    still points at the old value, so an interruption here leaves it readable.
+    await writeIndex(key, { current, stale: merge([...stale, [gen, chunks.length]]) });
     for (let i = 0; i < chunks.length; i++) {
-      await SecureStore.setItemAsync(chunkKey(key, i), chunks[i]);
+      await SecureStore.setItemAsync(chunkKey(key, gen, i), chunks[i]);
     }
-    await removeChunks(key, chunks.length, previous);
-    await SecureStore.setItemAsync(key, String(chunks.length));
+
+    // 2. Switch to the new value in one write; the old chunks become stale.
+    const leftovers = merge([...stale, ...(current ? [current] : [])]);
+    await writeIndex(key, { current: [gen, chunks.length], stale: leftovers });
+
+    // 3. Clean up. Chunks of this generation below chunks.length are the live ones.
+    for (const [staleGen, count] of leftovers) {
+      await removeChunks(key, staleGen, staleGen === gen ? chunks.length : 0, count);
+    }
+    await writeIndex(key, { current: [gen, chunks.length], stale: [] });
   },
 
   async removeItem(key: string): Promise<void> {
-    // Chunks first, count last, so the count survives until every chunk is gone.
-    await removeChunks(key, 0, await chunkCount(key));
+    // Chunks first, index last, so the index survives until every chunk is gone.
+    const { current, stale } = await readIndex(key);
+    for (const [gen, count] of [...stale, ...(current ? [current] : [])]) {
+      await removeChunks(key, gen, 0, count);
+    }
     await SecureStore.deleteItemAsync(key);
   },
 };

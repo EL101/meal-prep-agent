@@ -49,7 +49,7 @@ cp backend/.env.example backend/.env   # first time: add your Supabase keys
 docker compose up -d                   # Postgres + API on http://localhost:8000, with migrations and auto-reload
 ```
 
-For tests and lint (Python 3.12, [uv](https://docs.astral.sh/uv/)): `cd backend && uv sync && uv run pytest`.
+For tests and lint (Python 3.12, [uv](https://docs.astral.sh/uv/)): `cd backend && uv sync && uv run pytest && uv run ruff check . && uv run ruff format --check .`.
 
 Backend layout: `api/` (routes) → `services/` (business logic) → `repositories/` (queries) → `models/` (tables). `schemas/` holds the Pydantic request/response models.
 
