@@ -71,22 +71,22 @@ export async function signInWithApple(): Promise<Result> {
   }
 }
 
-// --- Google (iOS and web) ------------------------------------------------------------------
+// --- Google -----------------------------------------------------------------------------------
 
-// iOS development builds with an iOS client ID use the native Google SDK, which needs that client
-// ID (and the URL scheme app.config.ts derives from it). Expo Go doesn't ship that native module,
-// and importing the package there throws at load time, so it's only required once we know the
-// module exists. Everywhere else (web, Expo Go) goes through Supabase's Google sign-in page, for
-// which the web client ID only signals that the Google provider is set up.
+// Development builds use the native Google SDK: iOS needs its own client ID (and the URL scheme
+// app.config.ts derives from it); Android needs only the web client ID, plus an Android client
+// registered in Google Cloud with the build's SHA-1. Expo Go doesn't ship that native module, and
+// importing the package there throws at load time, so it's only required once we know it exists.
+// Everywhere else (web, Expo Go) goes through Supabase's Google sign-in page, for which the web
+// client ID only signals that the Google provider is set up.
 const isWeb = Platform.OS === 'web';
 const isNativeGoogleConfigured =
-  Platform.OS === 'ios' &&
+  !isWeb &&
   !isRunningInExpoGo() &&
   Boolean(config.googleWebClientId) &&
-  Boolean(config.googleIosClientId);
+  (Platform.OS !== 'ios' || Boolean(config.googleIosClientId));
 
-export const isGoogleSignInConfigured =
-  (isWeb || Platform.OS === 'ios') && Boolean(config.googleWebClientId);
+export const isGoogleSignInConfigured = Boolean(config.googleWebClientId);
 
 type GoogleSdk = typeof import('@react-native-google-signin/google-signin');
 let googleSdk: GoogleSdk | null = null;
@@ -122,6 +122,9 @@ export async function signInWithGoogle(): Promise<Result> {
 
   let idToken: string | null;
   try {
+    if (Platform.OS === 'android') {
+      await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
+    }
     const response = await GoogleSignin.signIn();
     if (!isSuccessResponse(response)) return CANCELLED;
     idToken = response.data.idToken;
@@ -129,6 +132,9 @@ export async function signInWithGoogle(): Promise<Result> {
     if (isErrorWithCode(e)) {
       if (e.code === statusCodes.SIGN_IN_CANCELLED || e.code === statusCodes.IN_PROGRESS) {
         return CANCELLED;
+      }
+      if (e.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
+        throw new SignInError('Google sign-in needs Google Play services on this device.');
       }
     }
     throw new SignInError('Google sign-in didn’t work. Try again.');

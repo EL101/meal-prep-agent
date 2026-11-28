@@ -59,7 +59,7 @@ Backend layout: `api/` (routes) → `services/` (business logic) → `repositori
 cd mobile
 npm install
 cp .env.example .env.local           # Supabase, backend URL and Google client IDs
-npm run dev                          # dev server + opens the web app; press i for the iOS simulator
+npm run dev                          # dev server + opens the web app; press i (iOS) or a (Android)
 ```
 
 One-time setup for sign-in providers and deploys: [docs/SETUP.md](docs/SETUP.md).
